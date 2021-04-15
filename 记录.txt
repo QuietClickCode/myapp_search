@@ -1,0 +1,713 @@
+2020年10月23日 19:02:13 星期五
+这是搜索服务
+还有单点登录,权限管理
+存储,爬虫,单表后台,多表后台,仪表盘,api
+统计分析
+考虑把aisearch 的所有功能拆分出去,
+形成一个个独立的微服务
+保证每个服务启动时间在10s内,
+vue-element-admin和vue-cli 打包时间太慢了,控制在10s内
+
+2020年10月24日 15:11:55 星期六
+mysql居然有三个层次的编码,库,表,列都要改,才生效,巨坑
+应该要排除一些文件夹,比如class下面的文件
+开始清理不需要的文件
+
+
+事务应该保证不了mysql和es的同步问题
+用第三方比如logstash来同步
+
+
+logstash 做数据同步elasticsearch和mysql
+https://blog.csdn.net/u011781521/article/details/77856331
+这个只能增量
+删除和修改好像都不可以
+@Transactional 注解生效了
+
+用事务+编程的方式尽量做到了elasticsearch和mysql的数据同步
+
+2020年10月24日 23:58:57 星期六
+改用配置的方式,还是只能实现一个一个搜索源的更新
+并且每次更新都需要重启一次,用循环暂时不得行,考虑这个并不是高频操作,还能接受
+properties 不要加"",大坑 并且要双斜杠
+
+
+2020年10月25日 2:03:30 星期日
+这样浏览速度就快多了
+考虑悬浮直接出详情页
+
+
+2020年10月25日 8:53:43 星期日
+可循环插入了,每次更新也不要重启了,之前的原因是hashmap 没清空,用的同一个hashmap
+//可以精确同步文件,数据库和索引库了
+
+文件同步到数据库,数据库同步到索引库
+其他方式到数据库,数据库同步到索引库
+都要到数据库
+todo:
+还要搞一个数据库同步到索引库的一个工具
+
+本地磁盘搜索,
+个人资源搜索
+网页资源搜索
+
+以及上面的结合
+可以单独做三个专门的 搜索工具
+分开是为了减少噪音
+
+也可以合并成一个搜索工具
+是为了更全面
+
+合成一个需要实现多条件搜索
+如以下场景?
+1.搜索飞机,标签为搞笑,那就需要一个标签字段
+2.搜索帽子,在个人志愿搜,那就需要一个搜索类型字段
+3.搜索电话,在个人志愿搜,并且时间在2020-2021,那就需要创建时间字段
+4.搜索心理学,但是不包含情感话题的,那就有一个话题字段
+5.搜索热搜,但是不包含各种电视剧,明星什么的,着重包含,科技,人文,it,计算机,前端什么的
+...
+坚持一个原则吧
+需要搜某个东西的时候,
+在哪里搜,哪方面搜
+搜出来,哪些是你最想要的,怎么来标记,怎么来给搜索引擎反馈这次搜索的体验,搜索引擎怎么来从每次的反馈中提高,
+哪些是你不想要的
+这样一步一步优化
+
+终极目标是有足够大的资源库,足够多的搜索条件,搜索引擎知道你的搜索习惯,能懂你的搜索需求
+搜出来都是无限接近你想要的,即使没搜到想要的,也会带给你灵感和启发,而不是垃圾结果
+并且足够快和方便,不需要一个一个点开,鼠标放上去结果就出来了,并且,交互人性化,符合设计美学
+有反馈和创意,有游戏元素
+
+极大的提高你的信息搜集能力
+
+然后就是信息利用能力
+
+
+
+按优先级,
+先搞这三个吧
+个人资源搜索(主要搜索自己的输出,比如,代码,写作,想法,笔记,阅读过的,收藏过的,偏重于看过,有印象,自己产出的,经历的,对自己重要的,主要为个人搜集的,与自己相关的)
+本地磁盘搜索(搜索本地磁盘上的一些书籍,软件,文档,文件,pdf,图片,声音,视频,等各种资源,偏重,第三方产出的,没看过,稍微次要的)
+网页资源搜索(主要就是书签,每天浏览过的 网页,爬虫爬一些网页,之前爬取的博客园,简书,csdn,知乎,来自互联网的信息)
+
+
+
+sql集锦:
+查询切换次数大于30的页面
+select * from (SELECT
+	*, count(*) a
+FROM
+	web_page_record_event b
+WHERE
+	b.web_page_record_id > 5000
+AND b.web_page_record_id < 6000
+
+GROUP BY
+	b.web_page_record_id
+) as x where x.a >30
+
+select * from web_page_record_event WHERE web_page_record_id = 5238
+select * from web_page_record_event WHERE web_page_record_id = 5238  and  eventname="activeWebPage"
+select * from web_page_record_event WHERE web_page_record_id = 5238  and  eventname="inactiveWebPage"
+
+
+mysql查询结果自增
+Select (@i:=@i+1) as RowNum, A.* from web_page_record_event A,(Select @i:=0) B  WHERE web_page_record_id = 5238  and  eventname="activeWebPage";
+
+mysql 时间相减
+SELECT      TIMESTAMPDIFF(SECOND,"2019-06-03 12:30:00","2019-06-03 12:31:30")
+
+前提是active和inactive成对出现,并且时间是有先后顺序的
+
+查询指定网页id(指定网页的浏览时间)
+记得:要改两个地方哦
+SELECT sum(TIMESTAMPDIFF(SECOND,ppx.eventtime2,ppx.eventtime1))
+from
+(
+
+(SELECT
+	xxoo.*
+FROM
+	(
+		(
+			SELECT
+				tmp222.id AS id2,
+				tmp222.RowNum2 AS RowNum2,
+				tmp222.eventname AS eventname2,
+tmp222.eventtime AS eventtime2,
+				tmp111.id AS id1,
+				tmp111.RowNum1 AS RowRum1,
+				tmp111.eventname AS eventname1,
+tmp111.eventtime AS eventtime1
+			FROM
+				(
+					SELECT
+						tmp22.*
+					FROM
+						(
+							(
+								SELECT
+									tmp2.*
+								FROM
+									(
+										(
+											SELECT
+												(@i :=@i + 1) AS RowNum2,
+												A.*
+											FROM
+												web_page_record_event A,
+												(SELECT @i := 0) B
+											WHERE
+												web_page_record_id = 5238
+											AND eventname = "activeWebPage"
+										) AS tmp2
+									)
+							) AS tmp22
+						)
+				) AS tmp222,
+				(
+					SELECT
+						tmp11.*
+					FROM
+						(
+							(
+								SELECT
+									tmp1.*
+								FROM
+									(
+										(
+											SELECT
+												(@i :=@i + 1) AS RowNum1,
+												A.*
+											FROM
+												web_page_record_event A,
+												(SELECT @i := 0) B
+											WHERE
+												web_page_record_id = 5238
+											AND eventname = "inactiveWebPage"
+										) AS tmp1
+									)
+							) AS tmp11
+						)
+				) AS tmp111
+			WHERE
+				tmp222.RowNum2 = tmp111.RowNum1
+		) AS xxoo
+	)) as ppx
+)
+
+
+改为存储过程,只用改一个地方了
+-- 设置mysql分隔符为//，也就意味着，当遇到下一个//时，整体执行SQL语句
+DELIMITER //
+DROP PROCEDURE
+IF EXISTS test ; # 如果存在test存储过程则删除
+CREATE PROCEDURE test () # 创建无参存储过程，名称为test
+BEGIN
+
+DECLARE i INT ; # 申明变量
+SET i = 6000 ; # 变量赋值
+
+
+SELECT sum(TIMESTAMPDIFF(SECOND,ppx.eventtime2,ppx.eventtime1))
+from
+(
+
+(SELECT
+	xxoo.*
+FROM
+	(
+		(
+			SELECT
+				tmp222.id AS id2,
+				tmp222.RowNum2 AS RowNum2,
+				tmp222.eventname AS eventname2,
+tmp222.eventtime AS eventtime2,
+				tmp111.id AS id1,
+				tmp111.RowNum1 AS RowRum1,
+				tmp111.eventname AS eventname1,
+tmp111.eventtime AS eventtime1
+			FROM
+				(
+					SELECT
+						tmp22.*
+					FROM
+						(
+							(
+								SELECT
+									tmp2.*
+								FROM
+									(
+										(
+											SELECT
+												(@i :=@i + 1) AS RowNum2,
+												A.*
+											FROM
+												web_page_record_event A,
+												(SELECT @i := 0) B
+											WHERE
+												web_page_record_id = i
+											AND eventname = "activeWebPage"
+										) AS tmp2
+									)
+							) AS tmp22
+						)
+				) AS tmp222,
+				(
+					SELECT
+						tmp11.*
+					FROM
+						(
+							(
+								SELECT
+									tmp1.*
+								FROM
+									(
+										(
+											SELECT
+												(@i :=@i + 1) AS RowNum1,
+												A.*
+											FROM
+												web_page_record_event A,
+												(SELECT @i := 0) B
+											WHERE
+												web_page_record_id = i
+											AND eventname = "inactiveWebPage"
+										) AS tmp1
+									)
+							) AS tmp11
+						)
+				) AS tmp111
+			WHERE
+				tmp222.RowNum2 = tmp111.RowNum1
+		) AS xxoo
+	)) as ppx
+);
+END //  # 结束定义语句
+CALL test();    # 调用存储过程
+DELIMITER ; # 重新将分隔符设置为;
+
+mysql 查询结果插入并创建表
+create table tmplist as select * from (select * from web_page_record where id =1) as sql_table;
+
+
+-- 设置mysql分隔符为//，也就意味着，当遇到下一个//时，整体执行SQL语句
+DELIMITER //
+DROP PROCEDURE
+IF EXISTS test ; # 如果存在test存储过程则删除
+CREATE PROCEDURE test () # 创建无参存储过程，名称为test
+BEGIN
+
+DECLARE i INT ; # 申明变量
+SET i = 9 ; # 变量赋值
+
+
+create table tmplist as select * from (select * from web_page_record where id =1) as sql_table;
+WHILE i > 1 DO
+insert into tmplist SELECT * from web_page_record where id = i
+
+SET i = i - 1 ; # 循环一次,i加1
+END
+WHILE ; # 结束while循环
+END //  # 结束定义语句
+CALL test();    # 调用存储过程
+DELIMITER ; # 重新将分隔符设置为;
+
+
+
+多个存储过程的查询结果合并到一个表
+-- 设置mysql分隔符为//，也就意味着，当遇到下一个//时，整体执行SQL语句
+DELIMITER //
+DROP PROCEDURE
+IF EXISTS test ; # 如果存在test存储过程则删除
+CREATE PROCEDURE test () # 创建无参存储过程，名称为test
+BEGIN
+
+DECLARE i INT ; # 申明变量
+SET i = 4012 ; # 变量赋值
+CREATE TABLE tmplist2 AS SELECT
+	*
+FROM
+	(
+		SELECT
+4007 "i",
+			sum(
+				TIMESTAMPDIFF(
+					SECOND,
+					ppx.eventtime2,
+					ppx.eventtime1
+				)
+			) as timecount
+		FROM
+			(
+				(
+					SELECT
+						xxoo.*
+					FROM
+						(
+							(
+								SELECT
+									tmp222.id AS id2,
+									tmp222.RowNum2 AS RowNum2,
+									tmp222.eventname AS eventname2,
+									tmp222.eventtime AS eventtime2,
+									tmp111.id AS id1,
+									tmp111.RowNum1 AS RowRum1,
+									tmp111.eventname AS eventname1,
+									tmp111.eventtime AS eventtime1
+								FROM
+									(
+										SELECT
+											tmp22.*
+										FROM
+											(
+												(
+													SELECT
+														tmp2.*
+													FROM
+														(
+															(
+																SELECT
+																	(@i :=@i + 1) AS RowNum2,
+																	A.*
+																FROM
+																	web_page_record_event A,
+																	(SELECT @i := 0) B
+																WHERE
+																	web_page_record_id = 4007
+																AND eventname = "activeWebPage"
+															) AS tmp2
+														)
+												) AS tmp22
+											)
+									) AS tmp222,
+									(
+										SELECT
+											tmp11.*
+										FROM
+											(
+												(
+													SELECT
+														tmp1.*
+													FROM
+														(
+															(
+																SELECT
+																	(@i :=@i + 1) AS RowNum1,
+																	A.*
+																FROM
+																	web_page_record_event A,
+																	(SELECT @i := 0) B
+																WHERE
+																	web_page_record_id = 4007
+																AND eventname = "inactiveWebPage"
+															) AS tmp1
+														)
+												) AS tmp11
+											)
+									) AS tmp111
+								WHERE
+									tmp222.RowNum2 = tmp111.RowNum1
+							) AS xxoo
+						)
+				) AS ppx
+			)
+	) AS sql_table ;
+WHILE i > 4007 DO
+	INSERT INTO tmplist2 SELECT
+		i,
+		sum(
+			TIMESTAMPDIFF(
+				SECOND,
+				ppx.eventtime2,
+				ppx.eventtime1
+			)
+		) as timecount
+	FROM
+		(
+			(
+				SELECT
+					xxoo.*
+				FROM
+					(
+						(
+							SELECT
+								tmp222.id AS id2,
+								tmp222.RowNum2 AS RowNum2,
+								tmp222.eventname AS eventname2,
+								tmp222.eventtime AS eventtime2,
+								tmp111.id AS id1,
+								tmp111.RowNum1 AS RowRum1,
+								tmp111.eventname AS eventname1,
+								tmp111.eventtime AS eventtime1
+							FROM
+								(
+									SELECT
+										tmp22.*
+									FROM
+										(
+											(
+												SELECT
+													tmp2.*
+												FROM
+													(
+														(
+															SELECT
+																(@i :=@i + 1) AS RowNum2,
+																A.*
+															FROM
+																web_page_record_event A,
+																(SELECT @i := 0) B
+															WHERE
+																web_page_record_id = i
+															AND eventname = "activeWebPage"
+														) AS tmp2
+													)
+											) AS tmp22
+										)
+								) AS tmp222,
+								(
+									SELECT
+										tmp11.*
+									FROM
+										(
+											(
+												SELECT
+													tmp1.*
+												FROM
+													(
+														(
+															SELECT
+																(@i :=@i + 1) AS RowNum1,
+																A.*
+															FROM
+																web_page_record_event A,
+																(SELECT @i := 0) B
+															WHERE
+																web_page_record_id = i
+															AND eventname = "inactiveWebPage"
+														) AS tmp1
+													)
+											) AS tmp11
+										)
+								) AS tmp111
+							WHERE
+								tmp222.RowNum2 = tmp111.RowNum1
+						) AS xxoo
+					)
+			) AS ppx
+		) ;
+	SET i = i - 1 ; # 循环一次,i加1
+	END
+	WHILE ; # 结束while循环
+	END//  # 结束定义语句
+CALL test();    # 调用存储过程
+DELIMITER ; # 重新将分隔符设置为;
+
+
+
+
+mysql统计id<5001的网页浏览时间
+
+-----------------------------------------------
+drop table if exists tmplist2;
+-- 设置mysql分隔符为//，也就意味着，当遇到下一个//时，整体执行SQL语句
+DELIMITER //
+DROP PROCEDURE
+IF EXISTS test ; # 如果存在test存储过程则删除
+CREATE PROCEDURE test () # 创建无参存储过程，名称为test
+BEGIN
+
+DECLARE i INT ; # 申明变量
+SET i = 5000 ; # 变量赋值
+CREATE TABLE tmplist2 AS SELECT
+	*
+FROM
+	(
+		SELECT
+5001 "i",
+			sum(
+				TIMESTAMPDIFF(
+					SECOND,
+					ppx.eventtime2,
+					ppx.eventtime1
+				)
+			) as timecount
+		FROM
+			(
+				(
+					SELECT
+						xxoo.*
+					FROM
+						(
+							(
+								SELECT
+									tmp222.id AS id2,
+									tmp222.RowNum2 AS RowNum2,
+									tmp222.eventname AS eventname2,
+									tmp222.eventtime AS eventtime2,
+									tmp111.id AS id1,
+									tmp111.RowNum1 AS RowRum1,
+									tmp111.eventname AS eventname1,
+									tmp111.eventtime AS eventtime1
+								FROM
+									(
+										SELECT
+											tmp22.*
+										FROM
+											(
+												(
+													SELECT
+														tmp2.*
+													FROM
+														(
+															(
+																SELECT
+																	(@i :=@i + 1) AS RowNum2,
+																	A.*
+																FROM
+																	web_page_record_event A,
+																	(SELECT @i := 0) B
+																WHERE
+																	web_page_record_id = 5001
+																AND eventname = "activeWebPage"
+															) AS tmp2
+														)
+												) AS tmp22
+											)
+									) AS tmp222,
+									(
+										SELECT
+											tmp11.*
+										FROM
+											(
+												(
+													SELECT
+														tmp1.*
+													FROM
+														(
+															(
+																SELECT
+																	(@i :=@i + 1) AS RowNum1,
+																	A.*
+																FROM
+																	web_page_record_event A,
+																	(SELECT @i := 0) B
+																WHERE
+																	web_page_record_id = 5001
+																AND eventname = "inactiveWebPage"
+															) AS tmp1
+														)
+												) AS tmp11
+											)
+									) AS tmp111
+								WHERE
+									tmp222.RowNum2 = tmp111.RowNum1
+							) AS xxoo
+						)
+				) AS ppx
+			)
+	) AS sql_table ;
+WHILE i > 0 DO
+	INSERT INTO tmplist2 SELECT
+		i,
+		sum(
+			TIMESTAMPDIFF(
+				SECOND,
+				ppx.eventtime2,
+				ppx.eventtime1
+			)
+		) as timecount
+	FROM
+		(
+			(
+				SELECT
+					xxoo.*
+				FROM
+					(
+						(
+							SELECT
+								tmp222.id AS id2,
+								tmp222.RowNum2 AS RowNum2,
+								tmp222.eventname AS eventname2,
+								tmp222.eventtime AS eventtime2,
+								tmp111.id AS id1,
+								tmp111.RowNum1 AS RowRum1,
+								tmp111.eventname AS eventname1,
+								tmp111.eventtime AS eventtime1
+							FROM
+								(
+									SELECT
+										tmp22.*
+									FROM
+										(
+											(
+												SELECT
+													tmp2.*
+												FROM
+													(
+														(
+															SELECT
+																(@i :=@i + 1) AS RowNum2,
+																A.*
+															FROM
+																web_page_record_event A,
+																(SELECT @i := 0) B
+															WHERE
+																web_page_record_id = i
+															AND eventname = "activeWebPage"
+														) AS tmp2
+													)
+											) AS tmp22
+										)
+								) AS tmp222,
+								(
+									SELECT
+										tmp11.*
+									FROM
+										(
+											(
+												SELECT
+													tmp1.*
+												FROM
+													(
+														(
+															SELECT
+																(@i :=@i + 1) AS RowNum1,
+																A.*
+															FROM
+																web_page_record_event A,
+																(SELECT @i := 0) B
+															WHERE
+																web_page_record_id = i
+															AND eventname = "inactiveWebPage"
+														) AS tmp1
+													)
+											) AS tmp11
+										)
+								) AS tmp111
+							WHERE
+								tmp222.RowNum2 = tmp111.RowNum1
+						) AS xxoo
+					)
+			) AS ppx
+		) ;
+	SET i = i - 1 ; # 循环一次,i加1
+	END
+	WHILE ; # 结束while循环
+	END//  # 结束定义语句
+CALL test();    # 调用存储过程
+DELIMITER ; # 重新将分隔符设置为;
+
+
+2020年11月20日 1:35:11 星期五
+考虑清理电脑上的垃圾了,影响心情
+
+
+
+
+
+2021年1月06日 17:24:37 星期三
+废弃test1controller
+1.同步浏览器记录用go实现了,
+2.项目导入elasticsearch,不太好,项目本身都可以用idea做全文检索,而且信息的意义对于非编程来说意义不大

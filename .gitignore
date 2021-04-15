@@ -1,0 +1,12 @@
+.idea/
+*.iml
+target/
+/hehe.txt
+/jrebel-classpath-216.jar
+/jrebel-classpath-7744.jar
+/AISearch.iml
+/src/main/resources/rebel-remote.xml
+/AISearch.zip
+/*.pdf
+/hs_err_pid18232.log
+/replay_pid18232.log
